@@ -1,5 +1,5 @@
 from base64 import b64encode
-from binascii import crc32, unhexlify
+from binascii import crc32
 from functools import lru_cache
 from zlib import compressobj
 from struct import pack
