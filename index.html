@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>IPv8 Chat</title>
+        <style type="text/css">
+            html {
+                height: 100%;
+                width: 100%;
+                overflow-x: hidden;
+                overflow-y: hidden;
+            }
+            body {
+                font-family: "Courier New", sans-serif;
+                text-align: left;
+                height: 100%;
+                width: 100%;
+            }
+            input {
+                font-family: "Courier New", sans-serif;
+                text-align: left;
+                font-size: 1em;
+                color: blue;
+            }
+            ul {
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+                width: 100%;
+            }
+            p {
+                margin: 0;
+            }
+            img {
+                image-rendering: pixelated;
+                image-rendering: -moz-crisp-edges;
+                image-rendering: crisp-edges;
+            }
+            .chatmessage {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                padding-left: 10px;
+                word-break: break-all;
+                padding-top: 5px;
+                padding-bottom: 0px;
+            }
+            .fstable {
+                height:100%;
+                width:100%;
+                position: fixed;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                border-spacing: 0;
+            }
+            .state {
+                font-size: 2em;
+                width:100%;
+            }
+            .button {
+                font-family: "Courier New", sans-serif;
+                font-size: 1em;
+                color: black;
+                font-weight: bold;
+                position: relative;
+                right: 0;
+            }
+            .chatlog {
+                border: 1px solid black;
+                font: "Courier New", sans-serif;
+                overflow-x: hidden;
+                overflow-y: scroll;
+                height: 100%;
+            }
+            .community {
+                font-size: 1em;
+                width: 100%;
+            }
+            .newmessagetext {
+                font-size: 2em;
+                border: 0;
+                outline-width: 0;
+                width: 100%;
+            }
+            .inputbox {
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <table class="fstable">
+            <tr style="width: 100%;"><td style="width: 100%">
+                <table class="state">
+                    <tr>
+                        <td>Connections:</td><td style="width: 100%"><span class="users">?</span></td><td></td>
+                    </tr><tr>
+                        <td>Room:</td><td style="width: 100%;"><input class="community" maxlength="40" value="00697076386368617467656e6572616c63686174"></td><td><input class="button" id="submitroom" type="submit" value="Join"></td>
+                    </tr>
+                </table>
+            </td></tr>
+            
+            <tr style="width: 100%; height: 100%;"><td style="margin: 10px;">
+                <div class="chatlog">
+                    <ul style="height:0;" class="chatloglist">
+                    </ul>
+                </div>
+            </td></tr>
+            
+            <tr style="width: 100%;"><td style="width: 100%;">
+                <table class="inputbox">
+                    <tr style="width: 100%">
+                        <td>></td><td style="width:100%;"><input class="newmessagetext" maxlength="250"></td><td><input class="button" id="submittext" type="submit" value="Submit" style="font-size: 2em;"></td>
+                    </tr>
+                </table>
+            </td></tr>
+        </table>
+        <script>
+            var submitroombutton = document.getElementById('submitroom'),
+                submittextbutton = document.getElementById('submittext'),
+                newmessagetext = document.querySelector('.newmessagetext');
+            const params = new URLSearchParams(document.location.search);
+            const wsport = params.get("wsport");
+            var ws_url = "ws://127.0.0.1:" + wsport + "/"
+            var websocket = new WebSocket(ws_url);
+            var failed = false;
+            function endOfStream(event){
+                if (!failed){
+                    failed = true;
+                    document.body.innerHTML = '';
+                    document.write("Failed to connect to " + ws_url + "<br>Please start your background service and reload this page!");
+                    window.stop();
+                }
+            }
+            websocket.onerror = endOfStream
+            websocket.onclose = endOfStream
+            submitroombutton.onclick = function (event) {
+                websocket.send(JSON.stringify({action: 'join', communityid: document.querySelector('.community').value}));
+            }
+            submittextbutton.onclick = function (event) {
+                websocket.send(JSON.stringify({action: 'send', message: newmessagetext.value}));
+                newmessagetext.value = "";
+                newmessagetext.focus();
+            }
+            newmessagetext.addEventListener("keyup", function(event) {
+              if (event.keyCode === 13) {
+                event.preventDefault();
+                submittextbutton.click();
+              }
+            }); 
+            function addChatMessage(imgdata, message){
+                var chatloglist = document.querySelector('.chatloglist')
+                
+                var chatmessage = document.createElement("li");
+                var userimg = document.createElement("img");
+                var imgsrc = "data:image/png;base64," + imgdata
+                var chattext = document.createElement("p");
+                var spacer = document.createTextNode("\xa0");
+                
+                chattext.textContent = message
+                
+                userimg.setAttribute("width", "32px");
+                userimg.setAttribute("height", "32px");
+                userimg.setAttribute("src", imgsrc);
+                
+                chatmessage.setAttribute("class", "chatmessage");
+                chatmessage.appendChild(userimg);
+                chatmessage.appendChild(spacer);
+                chatmessage.appendChild(chattext);
+                
+                chatloglist.appendChild(chatmessage);
+            }
+            websocket.onmessage = function (event) {
+                data = JSON.parse(event.data);
+                switch (data.type) {
+                    case 'receive':
+                        addChatMessage(data.img, data.message);
+                        break;
+                    case 'users':
+                        var users = document.querySelector('.users');
+                        users.textContent = (
+                            data.count.toString() + " connection" +
+                            (data.count == 1 ? "" : "s"));
+                        break;
+                    default:
+                        console.error(
+                            "unsupported event", data);
+                }
+            };
+            websocket.onopen = function(event){
+                // Finalize
+                submitroombutton.click();
+                newmessagetext.focus();
+            }
+        </script>
+    </body>
+</html>
