@@ -44,7 +44,7 @@ class WSIPv8(IPv8):
         community = await produce_community(self, data["communityid"])
         community.set_message_callback(self.send_ws_message)
         community.bootstrappers = [
-            #DispersyBootstrapper(**DISPERSY_BOOTSTRAPPER["init"]),
+            DispersyBootstrapper(**DISPERSY_BOOTSTRAPPER["init"]),
             UDPBroadcastBootstrapper()
         ]
         community.bootstrap()
