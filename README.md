@@ -4,7 +4,7 @@
 git clone --recursive git@github.com:qstokkink/ipv8chat.git
 cd ipv8chat
 pip install websockets
-cd ipv8
+cd pyipv8
 pip install -r requirements.txt
 ```
 
