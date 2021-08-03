@@ -95,7 +95,6 @@ async def produce_community(ipv8, prefix):
     b_prefix = unhexlify(prefix)
 
     my_peer = Peer(default_eccrypto.generate_key("curve25519"))
-    #endpoint = await ipv8.produce_anonymized_endpoint()
-    endpoint = ipv8.endpoint
+    endpoint = await ipv8.produce_anonymized_endpoint()
     community_instance = type("IPv8ChatCommunity-%s" % prefix, (IPv8ChatCommunity, ), {"community_id": b_prefix})
     return community_instance(my_peer, endpoint, Network(), max_peers=200, anonymize=True)

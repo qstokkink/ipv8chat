@@ -5,7 +5,8 @@ from sys import argv
 
 from pyipv8.ipv8.bootstrapping.dispersy.bootstrapper import DispersyBootstrapper
 from pyipv8.ipv8.bootstrapping.udpbroadcast.bootstrapper import UDPBroadcastBootstrapper
-from pyipv8.ipv8.configuration import ConfigBuilder, DISPERSY_BOOTSTRAPPER
+from pyipv8.ipv8.configuration import (Bootstrapper, BootstrapperDefinition, ConfigBuilder, DISPERSY_BOOTSTRAPPER,
+                                       Strategy, WalkerDefinition)
 from pyipv8.ipv8.peerdiscovery.churn import RandomChurn
 from pyipv8.ipv8.peerdiscovery.discovery import RandomWalk, DiscoveryStrategy
 
@@ -72,8 +73,23 @@ class WSIPv8(IPv8):
 
 
 def create_ipv8():
-    builder = ConfigBuilder().clear_keys().clear_overlays()
+    builder = ConfigBuilder().clear_overlays()
     builder.set_address("0.0.0.0")
+    builder.add_overlay("HiddenTunnelCommunity",
+                        "anonymous id",
+                        [WalkerDefinition(Strategy.RandomWalk, 20, {'timeout': 3.0})],
+                        [BootstrapperDefinition(Bootstrapper.DispersyBootstrapper,
+                                                DISPERSY_BOOTSTRAPPER['init'])],
+                        {'settings': {
+                                  'min_circuits': 1,
+                                  'max_circuits': 8,
+                                  'max_relays_or_exits': 100,
+                                  'max_time': 10 * 60,
+                                  'max_time_inactive': 20,
+                                  'max_traffic': 250 * 1024 * 1024,
+                                  'dht_lookup_interval': 10
+                        }},
+                        [('build_tunnels', 1)])
     kwargs = {}
     if len(argv) > 1:
         kwargs["wsport"] = int(argv[1])
